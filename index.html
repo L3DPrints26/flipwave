@@ -581,7 +581,7 @@ function createScreens(root, env) {
     h('div', { class: 'page-body' }, [h('div', { class: 'aboutbox' }, [
       h('div', { class: 'logo' }, ['FLIP', h('i', { text: 'WAVE' })]),
       h('p', {}, ['A game by ', h('b', { text: 'GamerCrafter' })]),
-      h('p', { text: 'Version 1.0.0-9821be38' }),
+      h('p', { text: 'Version 1.0.0-e97780a7' }),
       h('p', { class: 'nd', text: 'This game collects no data and works offline.' }),
       h('p', { text: 'No ads, no accounts, no purchases.' }),
       h('p', { class: 'nd', text: 'Add to Home Screen: in Safari tap Share, then "Add to Home Screen" (Chrome/Android: menu, then "Install app").' }),
@@ -3854,7 +3854,7 @@ function createRenderer(canvas) {
   let shakeAmp = 0, shakeT = 0, deathFlash = 0, portalFlash = 0, shieldPulse = 0, perfectFlash = 0, camKick = 0;
   let trailAcc = 0, tHead = 0, tCount = 0, trailFade = 1, sparkleAcc = 0, rs = 0x9e3779b9 | 0;
   let curSkinId = 'cyan_core', frameNo = 0, deathX = 0, deathY = 0;
-  let rollMode = 1, cumTurns = 0, curAlpha = 1, curA = 144, curB = 277, camInit = false, roll = 0, rollV = 0, rollT = 0, wPrev = 0, lastW = 0;
+  let thUnw = 0, rollMode = 1, cumTurns = 0, curAlpha = 1, curA = 144, curB = 277, camInit = false, roll = 0, rollV = 0, rollT = 0, wPrev = 0, lastW = 0;
   const LIGHT = [-0.45, 0.8, -0.2];
   const TRAIL_N = 40;
   const trX = new Float32Array(TRAIL_N), trY = new Float32Array(TRAIL_N), trZ = new Float32Array(TRAIL_N);
@@ -4077,7 +4077,7 @@ function createRenderer(canvas) {
   function setupCamera(px, cy, cz, dt, speed) {
     // roll: critically damped spring (no overshoot) toward rollT; soft mode ~0.33 s, full mode ~0.2 s
     let sub = dt, n = 0;
-    const om = rollMode === 2 ? 21 : 11.5;   // critically damped: Smooth ~0.40 s, Fast ~0.22 s
+    const om = rollMode === 2 ? 56 : 36;   // light critically damped smoothing of an already-continuous target: Smooth ~0.2 s, Fast ~0.12 s
     if (!camInit) { roll = rollT; rollV = 0; camInit = true; }
     while (sub > 0 && n < 8) {
       const h = Math.min(sub, 1 / 120);
@@ -4755,9 +4755,18 @@ function createRenderer(canvas) {
       if (exp !== w) { const d = (w - exp) & 3; cumTurns += d === 3 ? -1 : 1; }   // safety net if an event was missed
     }
     // keep the numbers bounded: shift target and spring state together by whole turns (360 deg)
-    while (cumTurns >= 8) { cumTurns -= 4; roll += 6.283185307; }
-    while (cumTurns <= -8) { cumTurns += 4; roll -= 6.283185307; }
-    rollT = rollMode === 0 ? 0 : -cumTurns * 1.5707963;
+    // keep the numbers bounded: shift target and spring state together by whole turns
+    while (thUnw >= 12.566370614) { thUnw -= 12.566370614; roll += 12.566370614; }
+    while (thUnw <= -12.566370614) { thUnw += 12.566370614; roll -= 12.566370614; }
+    // camera roll follows the cube's REAL angle around the tube axis (continuous, unwrapped): the cube stays near the bottom of the screen
+    // during the whole turn and the roof keeps rotating the same way. No lag-vs-cube mismatch = smooth.
+    {
+      let th = Math.atan2(pa - 144, pb - 144);
+      th += 6.283185307 * Math.round((thUnw - th) / 6.283185307);
+      thUnw = th;
+      rollT = rollMode === 0 ? 0 : -th;
+      if (!camInit) { roll = rollT; rollV = 0; }
+    }
     const cy = CH - pb, cz = pa - ZW;
     parts.update(dt, px, cy, cz);
     renderScene(g.corr.chunks, g.ci, px, cy, cz, animT, dt, g, view, g.speed || 300);
