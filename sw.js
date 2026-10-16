@@ -1,6 +1,6 @@
-/* Flipwave service worker - build 1.0.0-2f8efc6a (this file changes every build, which is what triggers updates) */
+/* Flipwave service worker - build 1.0.0-9821be38 (this file changes every build, which is what triggers updates) */
 'use strict';
-var CACHE = 'flipwave-1.0.0-2f8efc6a';
+var CACHE = 'flipwave-1.0.0-9821be38';
 var ASSETS = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(ASSETS.map(function (u) { return new Request(u, { cache: 'reload' }); })); }).then(function () { return self.skipWaiting(); }));
